@@ -1,12 +1,12 @@
-﻿using System.Collections.ObjectModel;
+﻿using System.Collections.Generic;
 
 namespace JavaVerifier.Parsing.SyntaxElements {
 
   internal sealed class RequiresDirective : ModuleDirective {
-    public ReadOnlyCollection<RequiresModifier> Modifiers { get; }
+    public IReadOnlyCollection<RequiresModifier> Modifiers { get; }
     public Name ModuleName { get; }
 
-    public RequiresDirective(ReadOnlyCollection<RequiresModifier> modifiers, Name moduleName) {
+    public RequiresDirective(IReadOnlyCollection<RequiresModifier> modifiers, Name moduleName) {
       ModuleName = moduleName;
     }
   }

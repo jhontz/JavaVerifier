@@ -51,9 +51,14 @@ namespace JavaVerifier.Parsing {
       }
       // Check for type declarations
       while (HasMoreTokens()) {
-        typeDecls.Add(ReadTypeDeclaration());
+        if (IsSymbol(PeekToken(), ";")) {
+          ReadSymbol(";");
+        }
+        else {
+          typeDecls.Add(ReadTypeDeclaration());
+        }
       }
-      return new OrdinaryCompilationUnit(packageDecl, importDecls.AsReadOnly(), typeDecls.AsReadOnly());
+      return new OrdinaryCompilationUnit(packageDecl, importDecls, typeDecls);
     }
 
     private ModularCompilationUnit ReadModularCompilationUnit() {
@@ -66,7 +71,7 @@ namespace JavaVerifier.Parsing {
       }
       // Now read module declaration
       moduleDecl = ReadModuleDeclaration();
-      return new ModularCompilationUnit(importDecls.AsReadOnly(), moduleDecl);
+      return new ModularCompilationUnit(importDecls, moduleDecl);
       // TODO: implement
       throw new NotImplementedException();
     }
@@ -98,7 +103,7 @@ namespace JavaVerifier.Parsing {
       ReadSymbol("package");
       identifiers = ReadIdentifierSequence();
       ReadSymbol(";");
-      return new PackageDeclaration(modifiers.AsReadOnly(), identifiers.AsReadOnly());
+      return new PackageDeclaration(modifiers, identifiers);
     }
 
     private ImportDeclaration ReadImportDeclaration() {
@@ -167,30 +172,22 @@ namespace JavaVerifier.Parsing {
       Token tok;
       Func<TypeDeclaration> func = null;
       LookAhead(() => {
-        if (IsSymbol(PeekToken(), ";")) {
-          func = () => {
-            ReadSymbol(";");
-            return new BlankTypeDeclaration();
-          };
+        DiscardModifiers();
+        tok = PeekToken();
+        if (IsSymbol(tok, "class")) {
+          func = ReadNormalClassDeclaration;
+        }
+        else if (IsSymbol(tok, "enum")) {
+          func = ReadEnumDeclaration;
+        }
+        else if (IsSymbol(tok, "interface")) {
+          func = ReadNormalInterfaceDeclaration;
+        }
+        else if (IsSymbol(tok, "@")) {
+          func = ReadAnnotationTypeDeclaration;
         }
         else {
-          DiscardModifiers();
-          tok = PeekToken();
-          if (IsSymbol(tok, "class")) {
-            func = ReadNormalClassDeclaration;
-          }
-          else if (IsSymbol(tok, "enum")) {
-            func = ReadEnumDeclaration;
-          }
-          else if (IsSymbol(tok, "interface")) {
-            func = ReadNormalInterfaceDeclaration;
-          }
-          else if (IsSymbol(tok, "@")) {
-            func = ReadAnnotationTypeDeclaration;
-          }
-          else {
-            throw new ParseException("illegal start of type declaration");
-          }
+          throw new ParseException("illegal start of type declaration");
         }
       });
       return func();
@@ -311,12 +308,7 @@ namespace JavaVerifier.Parsing {
         }
       }
       ReadSymbol("}");
-      return new ModuleDeclaration(
-        annotations.AsReadOnly(),
-        isOpen,
-        identifiers.AsReadOnly(),
-        moduleDirectives.AsReadOnly()
-      );
+      return new ModuleDeclaration(annotations, isOpen, identifiers, moduleDirectives);
     }
 
     private RequiresDirective ReadRequiresDirective() {
@@ -352,7 +344,7 @@ namespace JavaVerifier.Parsing {
       } // end while
       moduleName = Name.GetNameFromIdentifiers(ReadIdentifierSequence(), NameType.Module);
       ReadSymbol(";");
-      return new RequiresDirective(modifiers.AsReadOnly(), moduleName);
+      return new RequiresDirective(modifiers, moduleName);
     }
 
     private ExportsDirective ReadExportsDirectve() {
@@ -375,7 +367,7 @@ namespace JavaVerifier.Parsing {
         }
       }
       ReadSymbol(";");
-      return new ExportsDirective(packageName, moduleNames.AsReadOnly());
+      return new ExportsDirective(packageName, moduleNames);
     }
 
     private OpensDirective ReadOpensDirectve() {
@@ -398,7 +390,7 @@ namespace JavaVerifier.Parsing {
         }
       }
       ReadSymbol(";");
-      return new OpensDirective(packageName, moduleNames.AsReadOnly());
+      return new OpensDirective(packageName, moduleNames);
     }
 
     private UsesDirective ReadUsesDirective() {
@@ -427,7 +419,7 @@ namespace JavaVerifier.Parsing {
         }
       }
       ReadSymbol(";");
-      return new ProvidesDirective(serviceName, serviceProviderNames.AsReadOnly());
+      return new ProvidesDirective(serviceName, serviceProviderNames);
     }
 
   }

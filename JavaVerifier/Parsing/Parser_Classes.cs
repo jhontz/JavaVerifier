@@ -3,6 +3,8 @@ using System.Collections.Generic;
 
 using JavaVerifier.Parsing.SyntaxElements;
 
+using Type = JavaVerifier.Parsing.SyntaxElements.Type;
+
 namespace JavaVerifier.Parsing {
 
   internal partial class Parser {
@@ -10,7 +12,10 @@ namespace JavaVerifier.Parsing {
     private NormalClassDeclaration ReadNormalClassDeclaration() {
       List<Modifier> modifiers = new List<Modifier>();
       Identifier iden;
-      IList<TypeParameter> typeParams = new List<TypeParameter>();
+      List<TypeParameter> typeParams = new List<TypeParameter>();
+      Type superclass = null;
+      List<Type> superinterfaces = new List<Type>();
+      ClassBody body;
       while (!IsSymbol(PeekToken(), "class")) {
         modifiers.Add(ReadModifier());
       }
@@ -30,6 +35,19 @@ namespace JavaVerifier.Parsing {
         }
         ReadSymbol(">");
       }
+      if (IsSymbol(PeekToken(), "extends")) {
+        ReadSymbol("extends");
+        superclass = ReadType();
+      }
+      if (IsSymbol(PeekToken(), "implements")) {
+        ReadSymbol("implements");
+        superinterfaces.Add(ReadType());
+      }
+      body = ReadClassBody();
+      return new NormalClassDeclaration(modifiers, iden, typeParams, superclass, superinterfaces, body);
+    }
+
+    private ClassBody ReadClassBody() {
       throw new NotImplementedException();
     }
 
